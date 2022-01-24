@@ -7,13 +7,11 @@ import reportWebVitals from './reportWebVitals';
 import * as Sentry from "@sentry/react";
 import { Integrations } from "@sentry/tracing";
 
+// Sentry SDK initialization
 Sentry.init({
-  dsn: process.env.REACT_APP_SENTRY_DSN, //process.env.REACT_ENV_API_URL,
-  integrations: [new Integrations.BrowserTracing()],
-
-  // We recommend adjusting this value in production, or using tracesSampler
-  // for finer control
-  tracesSampleRate: 1.0,
+  dsn: process.env.REACT_APP_SENTRY_DSN, // Retreiving the DSN from .env file
+  integrations: [new Integrations.BrowserTracing()], // Enabling automatic browser tracing
+  tracesSampleRate: 1.0, // Capturing all events
 });
 
 ReactDOM.render(

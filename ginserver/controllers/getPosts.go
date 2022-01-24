@@ -20,6 +20,7 @@ type GetPostsResponseItem struct {
 type GetPostsResponse []GetPostsResponseItem
 
 func getPostsCall(sentryCtx context.Context) GetPostsResponse {
+	// sentry span init for function, set parent to context from calling function
 	defer sentry.Recover()
 	span := sentry.StartSpan(sentryCtx, "[GetPostsCall]")
 	defer span.Finish()
@@ -27,19 +28,25 @@ func getPostsCall(sentryCtx context.Context) GetPostsResponse {
 	var res GetPostsResponse
 
 	httpClient := &http.Client{}
-	span2 := sentry.StartSpan(span.Context(), "[HTTP] Get latests stories")
-	req, err := http.NewRequest("GET", "https://hacker-news.firebaseio.com/v0/newstories.json", nil)
+	span2 := sentry.StartSpan(span.Context(), "[HTTP] Get latests stories") // Start nested span to monitor first http request
+	req, err := http.NewRequest("GET", "https://hacker-news.firebaseio.com/v0/newstories.json?orderBy=\"$key\"&limitToFirst=10", nil)
 	if err != nil {
-		print("Error 1")
+		fmt.Print("Error 1:", err.Error())
+		sentry.CaptureException(err)
 	}
 	req.Close = true
 	resp, err2 := httpClient.Do(req)
 	if err2 != nil {
-		print("Error 2")
+		fmt.Print("Error 2:", err2.Error())
+		sentry.CaptureException(err2)
 	}
-	span2.Finish()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err3 := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
+	span2.Finish() // Request workflow finished; end span
+	if err3 != nil {
+		fmt.Print("Error 2: ", err3.Error())
+		sentry.CaptureException(err3)
+	}
 
 	fmt.Printf("Body : %s", string(body))
 
@@ -48,19 +55,14 @@ func getPostsCall(sentryCtx context.Context) GetPostsResponse {
 
 	fmt.Print(ids[0:10])
 
-	incr := 0
-
-	span3 := sentry.StartSpan(span.Context(), "[HTTP] Get data for stories")
+	span3 := sentry.StartSpan(span.Context(), "[HTTP] Get data for stories") // Start span to monitor for loop execution time
 	for i := range ids {
 		id := ids[i]
-		if incr > 10 {
-			break
-		}
-		incr += 1
 
 		urlLink := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%v.json", id)
 		iResp, err := http.Get(urlLink)
 		if err != nil {
+			sentry.CaptureException(err)
 			continue
 		}
 
@@ -75,11 +77,12 @@ func getPostsCall(sentryCtx context.Context) GetPostsResponse {
 }
 
 func GetPostsHandler(c *gin.Context) {
+	// Sentry transaction initialization
 	defer sentry.Recover()
-	span := sentry.StartSpan(c, "[Getposts]", sentry.TransactionName("GETPOSTS"), sentry.ContinueFromRequest(c.Request))
+	span := sentry.StartSpan(c, "[Getposts]", sentry.TransactionName("GETPOSTS"), sentry.ContinueFromRequest(c.Request)) // Take trace id from request header
 	defer span.Finish()
 
-	response := getPostsCall(span.Context())
+	response := getPostsCall(span.Context()) // Call nested function; Could be DAO methods
 
 	c.JSON(200, response)
 }

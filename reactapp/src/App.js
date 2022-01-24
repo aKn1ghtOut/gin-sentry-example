@@ -5,18 +5,21 @@ import { useEffect } from 'react';
 function App() {
 
   useEffect(() => {
-    const url = `${process.env.REACT_APP_API_URL}getPosts`;
+    // Run once on page load
+    const url = `${process.env.REACT_APP_API_URL}getPosts`; // get API host from .env file
     fetch(url)
       .then(res => res.json())
       .then(res => {
         console.log({
           res
         });
+        // Printing out just for response visualisation
       })
       .catch(reason => {
-        console.log({
+        console.error({
           reason
         })
+        // print reason if request failed
       })
   }, [])
 
