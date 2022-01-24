@@ -39,9 +39,7 @@ func GetRouter() *gin.Engine {
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowCredentials = true
-	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "*")
-	corsConfig.AllowMethods = append(corsConfig.AllowMethods, "OPTIONS")
+	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "*") // For test project
 
 	r.Use(sentrygin.New(sentrygin.Options{}))
 	r.Use(cors.New(corsConfig))
